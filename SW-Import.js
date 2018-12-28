@@ -7,7 +7,7 @@
 // 	
 // 	INSTRUCTIONS
 // 	1. Find yourself a SW stat-block
-// 	2. Copy the stat block from *Name* on down
+// 	2. Copy the stat block from *Name* on down - make sure first line starts with 'DD' if wild card
 // 	3. Paste the stat block into the GM Notes Section of a token in your roll20 campaign.
 // 	4. Select the token 
 //    5. In the chat box, type the command "!SW-Import".
@@ -48,7 +48,7 @@ function AddAttribute(attr, value, charID) {
 
       });
       //use the line below for diagnostics!
-      sendChat("", "Attribute: Value = " + attr + ": " + value);
+      // sendChat("", "Attribute: Value = " + attr + ": " + value);
    }
    return;
 }
@@ -199,7 +199,7 @@ on('chat:message', function(msg) {
       }
 
       //*************  START CREATING CHARACTER****************
-      var verboseMode = 1;
+      var verboseMode = 0;
 
       // get notes from token
       var originalGmNotes = token.get('gmnotes');
@@ -232,7 +232,14 @@ on('chat:message', function(msg) {
       // return;
 
       //break the string down by line returns
-      var data = gmNotes.split("userscript-");
+      // var data = gmNotes.split("userscript-");      
+      var data = [];
+      if ( /userscript-/.test(gmNotes) ) {
+         data = gmNotes.split("userscript-"); 
+      }
+      else {
+         data = gmNotes.split("br"); 
+      }
       // check the data looks right
       // sendChat("","data2 = [" + data[2] + "]" );
       //  return;
@@ -266,6 +273,7 @@ on('chat:message', function(msg) {
                charName = charNameLine.match(/^(.*)/)[1];
             }
             charName = charName.replace(/p class/g, '');
+            charName = stripString(charName, "nbsp,", " ");
             charName = charName.replace(/[^a-zA-Z0-9()+:, ]/g, '');
             charName = charName.trim();
 
@@ -299,6 +307,14 @@ on('chat:message', function(msg) {
       gmNotes = stripString(gmNotes, "</a>", "");
       gmNotes = stripStringRegEx(gmNotes, "<t", ">");
       gmNotes = stripStringRegEx(gmNotes, "</t", ">");
+      gmNotes = stripStringRegEx(gmNotes, "<span", "> ");
+      gmNotes = stripStringRegEx(gmNotes, "</span", "> ");
+      gmNotes = stripString(gmNotes, "<span>", " ");
+      gmNotes = stripString(gmNotes, "</span>", " ");
+      gmNotes = stripStringRegEx(gmNotes, "<p", "> ");
+      gmNotes = stripStringRegEx(gmNotes, "</p", "> ");
+      gmNotes = stripString(gmNotes, "<p>", " ");
+      gmNotes = stripString(gmNotes, "</p>", " ");
       gmNotes = stripString(gmNotes, "%20", " ");
       gmNotes = stripString(gmNotes, "%22", "\"");
       gmNotes = stripString(gmNotes, "%29", ")");
@@ -434,7 +450,7 @@ on('chat:message', function(msg) {
          stealth = gmNotes.match(/Stealth\s+(d\d+\+?\d*)/)[1];
       }
       if (/[Spellcasting|Focus|Faith|Psionics|Weird Science]\s+(d\d+\+?\d*)/.test(gmNotes)) {
-         arcane = gmNotes.match(/[Spellcasting|Focus|Faith|Psionics|Weird Science]\s+(d\d+\+?\d*)/)[1];
+         arcane = gmNotes.match(/[Spellcasting|Spellweaving|Runecasting|Focus|Faith|Psionics|Weird Science]\s+(d\d+\+?\d*)/)[1];
       }
 
       // Derived Stats
@@ -465,31 +481,31 @@ on('chat:message', function(msg) {
       var initEdges = '0,';
       var cbtReflex = '0';
       var ironJaw = '0';
-      if (/Edges:.*Quick/.test(gmNotes)) {
+      if (/(Edges|Special Abilities):.*Quick/.test(gmNotes)) {
          initEdges = initEdges + 'Qui,';
       }
-      if (/Edges:.*Improved Level Headed/.test(gmNotes)) {
+      if (/(Edges|Special Abilities):.*Improved Level Headed/.test(gmNotes)) {
          initEdges = initEdges + 'ILH,';
       }
-      if (/Edges:.*Level Headed/.test(gmNotes)) {
+      if (/(Edges|Special Abilities):.*Level Headed/.test(gmNotes)) {
          initEdges = initEdges + 'LH,';
       }
-      if (/Edges:.*Tactician/.test(gmNotes)) {
+      if (/(Edges|Special Abilities):.*Tactician/.test(gmNotes)) {
          initEdges = initEdges + 'TT,';
       }
-      if (/Edges:.*Master Tactician/.test(gmNotes)) {
+      if (/(Edges|Special Abilities):.*Master Tactician/.test(gmNotes)) {
          initEdges = initEdges + 'MTT,';
       }
-      if (/Edges:.*Mighty Blow/.test(gmNotes)) {
+      if (/(Edges|Special Abilities):.*Mighty Blow/.test(gmNotes)) {
          initEdges = initEdges + 'WCE,';
       }
-      if (/Edges:.*Dead Shot/.test(gmNotes)) {
+      if (/(Edges|Special Abilities):.*Dead Shot/.test(gmNotes)) {
          initEdges = initEdges + 'WCE,';
       }
-      if (/Edges:.*Combat Reflex/.test(gmNotes)) {
+      if (/(Edges|Special Abilities):.*Combat Reflex/.test(gmNotes)) {
          cbtReflex = '1';
       }
-      if (/Edges:.*Iron Jaw/.test(gmNotes)) {
+      if (/(Edges|Special Abilities):.*Iron Jaw/.test(gmNotes)) {
          ironJaw = '1';
       }
 
@@ -545,7 +561,7 @@ on('chat:message', function(msg) {
       if (wildCard) {
          tokenName = tokenName + "@";
       }
-      sendChat("", "token name: " + tokenName);
+      // sendChat("", "token name: " + tokenName);
       token.set("name", tokenName);
       token.set("showname", true);
       token.set("showplayers_name", false);
@@ -556,8 +572,18 @@ on('chat:message', function(msg) {
          name: charName,
          archived: false
       });
-
-      gmNotes = gmNotes.replace(/DDspan/g, '[Wild Card!] ');
+ 
+      // format GM notes for Bio
+      gmNotes = gmNotes.replace(/DD/, '<b>[Wild Card!]</b> ');
+      gmNotes = gmNotes.replace(charName, '<b>' + charName +'</b><br>');
+      gmNotes = gmNotes.replace('Attributes', '<br><b>Attributes </b>' );
+      gmNotes = gmNotes.replace('Skills','<br><b>Skills </b>');
+      gmNotes = gmNotes.replace('Edges', '<br><b>Edges </b>');
+      gmNotes = gmNotes.replace('Special Abilities', '<br><b>Special Abilities </b>');
+      gmNotes = gmNotes.replace('Pace', '<br><b>Pace</b>');
+      gmNotes = gmNotes.replace('Gear', '<br><b>Gear </b>');
+      gmNotes = gmNotes.replace('Powers', '<br><b>Powers </b>');
+  
       character.set('bio', gmNotes );
 
       // assign token to represent character
@@ -594,6 +620,9 @@ on('chat:message', function(msg) {
       AddAttribute('CombatReflex', cbtReflex, charID);
       AddAttribute('IronJaw', ironJaw, charID);
 
+      sendChat('', '/w gm SW Statblock Import Complete');
+      sendChat('', '/w gm Created: charName = [' + charName + '] Wild Card: = [' + wildCard + ']');
+     
       return;
    }
 });
