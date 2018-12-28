@@ -1,4 +1,4 @@
-# ParseSWStatblock
+Parse SW Stat Block
 API script parse SW stat-block and create character sheet, token, etc.
 
   SW STAT BLOCK IMPORTER FOR ROLL20 API
@@ -10,7 +10,7 @@ API script parse SW stat-block and create character sheet, token, etc.
  	
  	INSTRUCTIONS
  	1. Grab and official SW stat block from a PDF or Zadmar's site, or anywhere else
- 	2. Copy the stat block from *Name* on down
+ 	2. Copy the stat block from *Name* on down - make sure first 2 characters are 'DD' if wildcard
   3. Paste the stat block into the GM Notes Section of a token in your roll20 campaign.
   4. Select the token
   5. In the chat box, type the command "!SW-Import".
