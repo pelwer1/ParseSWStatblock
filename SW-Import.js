@@ -6,10 +6,11 @@
 // 	Hacked to parse swade stat block from pdf
 // 	
 // 	INSTRUCTIONS
-// 	1. Go to SWADE, find yourself some baddies (or NPC's)
+// 	1. Find yourself a SW stat-block
 // 	2. Copy the stat block from *Name* on down
 // 	3. Paste the stat block into the GM Notes Section of a token in your roll20 campaign.
-// 	4. In the chat box, type the command "!SWADEImport".
+// 	4. Select the token 
+//    5. In the chat box, type the command "!SW-Import".
 // 
 // ---------------------------------------------------------
 // js beautify json options:   https://beautifier.io/
@@ -65,9 +66,13 @@ function AddAttribute(attr, value, charID) {
 //             });
 // }   
 
+//                            / \ / [ ] ( ) { } ? + * | . ^ $ 
 var RegExpEscapeSpecial = /([\/\\\/\[\]\(\)\{\}\?\+\*\|\.\^\$])/g;
 
 // string search and replace insitu
+// e.g.  gmNotes = stripString(gmNotes, "%3C/h1%3E", "%3Cbr");
+// search-in-string.replace( searchforvalue, replacewithnewvalue)
+// str = searchIn; removeStr = searchFor;  replaceWith = replaceWith                     
 function stripString(str, removeStr, replaceWith) {
    var r = new RegExp(removeStr.replace(RegExpEscapeSpecial, "\\$1"), 'g');
    return str.replace(r, replaceWith);
@@ -178,7 +183,7 @@ function getSkillDie(searchIn, forSkill) {
 on('chat:message', function(msg) {
 
    // Only run when message is an api type and contains "!PathfinderImport"
-   if (msg.type === 'api' && msg.content.indexOf('!SWADE-Import') !== -1) {
+   if (msg.type === 'api' && msg.content.indexOf('!SW-Import') !== -1) {
 
       // Make sure there's a selected object
       if (!(msg.selected && msg.selected.length > 0)) {
@@ -204,8 +209,18 @@ on('chat:message', function(msg) {
          return;
       }
       // sendChat("","raw gmNotes = [" + gmNotes + "]" );
-      // return;
 
+      // strip out html tags:  myString.replace(/<(?:.|\n)*?>/gm, '');
+      // gmNotes = gmNotes.replace(/<(?:.|\n)*?>/gm, '');
+      // sendChat("","after 2nd replace gmNotes = [" + gmNotes + "]" );
+      
+      
+      // this is the winner !!  put what you want to keep in the regex
+      // gmNotes = gmNotes.replace(/[^a-zA-Z0-9()<\/>+:, ]/g, '');
+      // sendChat("","after 1st replace gmNotes = [" + gmNotes + "]" );
+      
+
+      
       //strip html junk from gmNotes that roll20 stores text block
       gmNotes = stripString(gmNotes, "%3C/table%3E", "%3Cbr");
       gmNotes = stripString(gmNotes, "%3C/h1%3E", "%3Cbr");
@@ -289,10 +304,20 @@ on('chat:message', function(msg) {
       gmNotes = stripString(gmNotes, "%29", ")");
       gmNotes = stripString(gmNotes, "%28", "(");
       gmNotes = stripString(gmNotes, "%2C", ",");
-      gmNotes = stripString(gmNotes, "%u201C", "");
-      gmNotes = stripString(gmNotes, "%u201D", "");
+      gmNotes = stripString(gmNotes, "%27", "'");
+      gmNotes = stripString(gmNotes, "%u2019", "'");
+      gmNotes = stripString(gmNotes, "%u201C", " ");
+      gmNotes = stripString(gmNotes, "%u2022", " ");
+      gmNotes = stripString(gmNotes, "%u2014", " ");
+      gmNotes = stripString(gmNotes, "%84", " ");
+      gmNotes = stripString(gmNotes, "%0A", " ");
+      gmNotes = stripString(gmNotes, "%26nbsp,", " ");
+      gmNotes = stripString(gmNotes, "%u201D", " ");    
       gmNotes = stripString(gmNotes, "%26amp,", "and");
 
+      // sendChat("","x gmNotes = [" + gmNotes + "]" );
+      // return;
+      
       // done with all the substitutions, delete all the other codes
       while (gmNotes.search(/%../) != -1) {
          gmNotes = gmNotes.replace(/%../, "");
@@ -306,7 +331,7 @@ on('chat:message', function(msg) {
       gmNotes = gmNotes.replace(/\s+/g, ' ');
 
       // this is the winner !!
-      gmNotes = gmNotes.replace(/[^a-zA-Z0-9()+:, ]/g, '');
+      gmNotes = gmNotes.replace(/[^a-zA-Z0-9()\+:,\'\. ]/g, '');
 
       gmNotes = gmNotes.replace(/span classuserscripts1/g, ' ');
       gmNotes = gmNotes.replace(/span classuserscripts2/g, ' ');
@@ -393,7 +418,6 @@ on('chat:message', function(msg) {
       else if (intim === '1') { // no intim skill 
          intimpers = 'd4';
       }
-
       else {
          intimpers = gmNotes.match(/Intimidation\s+(d\d+\+?\d*)/)[1];
       }
@@ -401,6 +425,8 @@ on('chat:message', function(msg) {
       if (/Athletics\s+(d\d+\+?\d*)/.test(gmNotes)) {
          athletics = gmNotes.match(/Athletics\s+(d\d+\+?\d*)/)[1];
       }
+
+      
       if (/Notice\s+(d\d+\+?\d*)/.test(gmNotes)) {
          notice = gmNotes.match(/Notice\s+(d\d+\+?\d*)/)[1];
       }
@@ -430,9 +456,9 @@ on('chat:message', function(msg) {
       if (/Toughness:\s+\d+\s*\((\d+)\)/.test(gmNotes)) {
          armor = gmNotes.match(/Toughness:\s+\d+\s*\((\d+)\)/)[1];
       }
-      //    Size 1:
-      if (/Size\s+(\d+)/.test(gmNotes)) {
-         size = gmNotes.match(/Size\s+(\d+)/)[1];
+      //    Size 1  Size +1 
+      if (/Size\s+\+?(\d+)/.test(gmNotes)) {
+         size = gmNotes.match(/Size\s+\+?(\d+)/)[1];
       }
 
       // Edges
