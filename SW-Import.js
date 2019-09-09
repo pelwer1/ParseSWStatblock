@@ -39,7 +39,7 @@
 //   "e4x": false
 // }
 
-// New gmnotes parsing clean up from Aaron:
+// New gmnotes parsing clean up from Aaron:  9/8/19
 // Given the text from a Graphic's gmnotes property, or a Character's bio or gmnotes 
 // property, or a Handout's notes or gmnotes property, this will return a version with 
 // the auto-inserted editor formatting stripped out.
@@ -53,7 +53,6 @@
 //    const text = decodeEditorText(token.get('gmnotes'),{separator:'<BR>'});
 // asArray -- specifies to instead return the lines as an array. Default: false
 //    const text = decodeEditorText(token.get('gmnotes'),{asArray:true});
-
 const decodeEditorText = (t, o) =>{
   let w = t;
   o = Object.assign({ separator: '\r\n', asArray: false },o);
@@ -73,8 +72,8 @@ const decodeEditorText = (t, o) =>{
 
 
 
-//     AddAttribute("size",sizeNum,charID);
-// var AddAttribute = AddAttribute || {};  // needed?
+// Usage:
+//   AddAttribute("size",sizeNum,charID);
 function AddAttribute(attr, value, charID) {
    if (value === undefined) {
       log(attr + " has returned an undefined value.");
@@ -92,102 +91,6 @@ function AddAttribute(attr, value, charID) {
    }
    return;
 }
-// // function that adds the various abilities
-// // addAbility(attackName[1]+"-DMG", abilityDamageString, charID);
-// 
-// var AddAbility = AddAbility || {};
-// function addAbility(ability, text, charID) {
-// createObj("ability", {
-//                 name: ability,
-//                 description: "",
-//                 action: text,
-//                 istokenaction: true,
-//                 characterid: charID
-//             });
-// }   
-
-//                            / \ / [ ] ( ) { } ? + * | . ^ $ 
-var RegExpEscapeSpecial = /([\/\\\/\[\]\(\)\{\}\?\+\*\|\.\^\$])/g;
-
-// string search and replace insitu
-// e.g.  gmNotes = stripString(gmNotes, "%3C/h1%3E", "%3Cbr");
-// search-in-string.replace( searchforvalue, replacewithnewvalue)
-// str = searchIn; removeStr = searchFor;  replaceWith = replaceWith                     
-function stripString(str, removeStr, replaceWith) {
-   var r = new RegExp(removeStr.replace(RegExpEscapeSpecial, "\\$1"), 'g');
-   return str.replace(r, replaceWith);
-}
-
-/* Deletes any characters between the character a and b in incstr */
-function stripStringRegEx(incstr, a, b) {
-   var ea = a.replace(RegExpEscapeSpecial, "\\$1"),
-      eb = b.replace(RegExpEscapeSpecial, "\\$1"),
-      r = new RegExp(ea + '.*?' + eb, 'g');
-   return incstr.replace(r, '');
-}
-
-/*Cleans up the string leaving text and hyperlinks */
-function cleanUpString(strSpecials) {
-   strSpecials = stripString(strSpecials, "%20", " ");
-   strSpecials = stripString(strSpecials, "%22", "\"");
-   strSpecials = stripString(strSpecials, "%29", ")");
-   strSpecials = stripString(strSpecials, "%28", "(");
-   strSpecials = stripString(strSpecials, "%2C", ",");
-   strSpecials = stripString(strSpecials, "%3C", "<");
-   strSpecials = stripString(strSpecials, "%3E", ">");
-   strSpecials = stripString(strSpecials, "%23", "#");
-   strSpecials = stripString(strSpecials, "%3A", ":");
-   strSpecials = stripString(strSpecials, "%3B", ",");
-   strSpecials = stripString(strSpecials, "%3D", "=");
-
-   strSpecials = stripString(strSpecials, "</strong>", "");
-   strSpecials = stripString(strSpecials, "<strong>", "");
-   strSpecials = stripString(strSpecials, "</em>", "");
-   strSpecials = stripString(strSpecials, "<em>", "");
-   strSpecials = stripString(strSpecials, "%u2013", "-");
-   strSpecials = stripStringRegEx(strSpecials, "<b", ">");
-   strSpecials = stripString(strSpecials, "</b>", "");
-   strSpecials = stripStringRegEx(strSpecials, "<h", ">");
-   strSpecials = stripStringRegEx(strSpecials, "</h", ">");
-
-   strSpecials = stripString(strSpecials, "</a>", "");
-
-   strSpecials = stripStringRegEx(strSpecials, "<t", ">");
-   strSpecials = stripStringRegEx(strSpecials, "</t", ">");
-   strSpecials = stripString(strSpecials, "%20", " ");
-   strSpecials = stripString(strSpecials, "%22", "\"");
-   strSpecials = stripString(strSpecials, "%29", ")");
-   strSpecials = stripString(strSpecials, "%28", "(");
-   strSpecials = stripString(strSpecials, "%2C", ",");
-   strSpecials = stripString(strSpecials, "%u201C", "");
-   strSpecials = stripString(strSpecials, "%u201D", "");
-   strSpecials = stripString(strSpecials, "%26amp,", "and");
-
-   strSpecials = stripString(strSpecials, "p1\">", "");
-   strSpecials = stripString(strSpecials, "s1\">", "");
-   strSpecials = stripString(strSpecials, "p2\">", "");
-   strSpecials = stripString(strSpecials, "p[0-9]\">", "");
-
-   while (strSpecials.search(/%../) != -1) {
-      strSpecials = strSpecials.replace(/%../, "");
-   }
-
-   return strSpecials;
-}
-
-/* Deletes the links from the string str */
-function removeLinks(str) {
-   return stripStringRegEx(str, "<", ">");
-}
-
-// For checking if a string is empty, null or undefined I use:
-function isEmpty(str) {
-   return (!str || 0 === str.length);
-}
-//For checking if a string is blank, null or undefined I use:
-function isBlank(str) {
-   return (!str || /^\s*$/.test(str));
-}
 
 // convert SWADE die value to Roll20 exploding die format.  e.g. d12+2 --> d12!+2
 function dieConvert(str) {
@@ -199,21 +102,6 @@ function dieConvert(str) {
    }
    else { // d12
       return (str + '!'); // d12!
-   }
-}
-
-// need to learn why this didn't work
-// var athletics = 'd' + getSkillDie( gmNotes, 'Athletics');
-// sendChat("","Function Athletics: " + athletics);
-
-// search text for skill name and return die value
-function getSkillDie(searchIn, forSkill) {
-   var reggie = new RegExp(forSkill + '\s+d(\d+)', '');
-   if (reggie.test(searchIn)) {
-      return searchIn.match(reggie)[1];
-   }
-   else {
-      return "4";
    }
 }
 
@@ -243,8 +131,6 @@ on('chat:message', function(msg) {
 
       // get notes from token
       var originalGmNotes = token.get('gmnotes');
-      var gmNotes = token.get('gmnotes'); //original code
-      // const text = decodeEditorText(token.get('gmnotes'));
       const text = decodeEditorText(token.get('gmnotes'),{separator:'<BR>'});
       var gmNotes = text;
       if (!gmNotes) {
@@ -254,28 +140,9 @@ on('chat:message', function(msg) {
       // sendChat("","Post Decode gmNotes = [" + gmNotes + "]" );
 		// return;
       
-      //strip html junk from gmNotes that roll20 stores text block // pre aaron
-      //gmNotes = stripString(gmNotes, "%3C/table%3E", "%3Cbr");
-      //gmNotes = stripString(gmNotes, "%3C/h1%3E", "%3Cbr");
-      //gmNotes = stripString(gmNotes, "%3C/h2%3E", "%3Cbr");
-      //gmNotes = stripString(gmNotes, "%3C/h3%3E", "%3Cbr");
-      //gmNotes = stripString(gmNotes, "%3C/h4%3E", "%3Cbr");
-
-      // sendChat("","some cleaning  gmNotes = [" + gmNotes + "]" );
-      // return;
-
       //break the string down by line returns     
       var data = [];
       data = gmNotes.split('<BR>'); // post aaron change
-//       if ( /userscript-/.test(gmNotes) ) {  // orig pre aaron code
-//          data = gmNotes.split("userscript-"); 
-//       }
-//       else {
-//          data = gmNotes.split("br"); 
-//       }
-      // check the data looks right
-      // sendChat("","data2 = [" + data[2] + "]" );
-      //  return;
 
       //clean any characters excepting text and hyperlinks
       var charNameLine = "";
@@ -283,13 +150,9 @@ on('chat:message', function(msg) {
       var wildCard = 0;
       var skipLoop = 0;
       for (var i = 0; i < data.length; i++) {
-         //data[i] = cleanUpString(data[i]); // pre aaron
-         //data[i] = removeLinks(data[i]); // pre aaron
          data[i] = data[i].trim();
          // grab the first line with text
          if (/[A-Z]+/.test(data[i]) && !skipLoop) {
-            // sendChat("","got here 8 - data[i]:  i = " + i + " [" + data[i].length + "]" );
-            // sendChat("","[" + data[i][0] + data[i][1] + data[i][2] + data[i][3] + "]" );
             skipLoop = 1;
             charNameLine = data[i];
 
@@ -297,7 +160,6 @@ on('chat:message', function(msg) {
             if (charNameLine.match(/^\[WC\!\]/)) {
                wildCard = 1;
             }
-
             // get the name of the monster to build the journal entry
             if (wildCard) {
                charName = charNameLine.match(/^\[WC\!\](.*)/)[1];
@@ -305,11 +167,6 @@ on('chat:message', function(msg) {
             else {
                charName = charNameLine.match(/^(.*)/)[1];
             }
-            // charName = charName.replace(/p class/g, '');  // these 4 pre aaron
-            // charName = stripString(charName, "nbsp,", " ");
-            // charName = charName.replace(/[^a-zA-Z0-9()+:, ]/g, '');
-            // charName = charName.trim();
-
          }
       }
       if (verboseMode) {
@@ -317,88 +174,14 @@ on('chat:message', function(msg) {
          sendChat("", "Wild Card: = [" + wildCard + "]");
       }
 
-      // get GM Notes into a single long string for regex parsing - all pre aaron
-//       gmNotes = stripString(gmNotes, "%3C", "<");
-//       gmNotes = stripString(gmNotes, "%3E", ">");
-//       gmNotes = stripString(gmNotes, "%23", "#");
-//       gmNotes = stripString(gmNotes, "%3A", ":");
-//       gmNotes = stripString(gmNotes, "%3B", ",");
-//       gmNotes = stripString(gmNotes, "%3D", "=");
-//       gmNotes = stripString(gmNotes, "</strong>", "");
-//       gmNotes = stripString(gmNotes, "<strong>", "");
-//       gmNotes = stripString(gmNotes, "</em>", "");
-//       gmNotes = stripString(gmNotes, "<em>", "");
-//       gmNotes = stripString(gmNotes, "%u2013", "-");
-//       gmNotes = stripStringRegEx(gmNotes, "<b", ">");
-//       gmNotes = stripString(gmNotes, "</b>", "");
-//       gmNotes = stripStringRegEx(gmNotes, "<h", ">");
-//       gmNotes = stripStringRegEx(gmNotes, "</h", ">");
-//       gmNotes = stripString(gmNotes, "</a>", "");
-//       gmNotes = stripStringRegEx(gmNotes, "<t", ">");
-//       gmNotes = stripStringRegEx(gmNotes, "</t", ">");
-//       gmNotes = stripStringRegEx(gmNotes, "<span", "> ");
-//       gmNotes = stripStringRegEx(gmNotes, "</span", "> ");
-//       gmNotes = stripString(gmNotes, "<span>", " ");
-//       gmNotes = stripString(gmNotes, "</span>", " ");
-//       gmNotes = stripStringRegEx(gmNotes, "<p", "> ");
-//       gmNotes = stripStringRegEx(gmNotes, "</p", "> ");
-//       gmNotes = stripString(gmNotes, "<p>", " ");
-//       gmNotes = stripString(gmNotes, "</p>", " ");
-//       gmNotes = stripString(gmNotes, "%20", " ");
-//       gmNotes = stripString(gmNotes, "%22", "\"");
-//       gmNotes = stripString(gmNotes, "%29", ")");
-//       gmNotes = stripString(gmNotes, "%28", "(");
-//       gmNotes = stripString(gmNotes, "%2C", ",");
-//       gmNotes = stripString(gmNotes, "%27", "'");
-//       gmNotes = stripString(gmNotes, "%u2019", "'");
-//       gmNotes = stripString(gmNotes, "%u201C", " ");
-//       gmNotes = stripString(gmNotes, "%u2022", " ");
-//       gmNotes = stripString(gmNotes, "%u2014", " ");
-//       gmNotes = stripString(gmNotes, "%84", " ");
-//       gmNotes = stripString(gmNotes, "%0A", " ");
-//       gmNotes = stripString(gmNotes, "%26nbsp,", " ");
-//       gmNotes = stripString(gmNotes, "%u201D", " ");    
-//       gmNotes = stripString(gmNotes, "%26amp,", "and");
-
-      // sendChat("","x gmNotes = [" + gmNotes + "]" );
-      // return;
-      
-      // done with all the substitutions, delete all the other codes  -- pre aaron
-//       while (gmNotes.search(/%../) != -1) {
-//          gmNotes = gmNotes.replace(/%../, "");
-//       }
-
       // This javascript replaces all 3 types of line breaks with a space
       // This makes gmNotes 1 line of text
       gmNotes = gmNotes.replace(/([\r\n]+)/gm, " ");
 
       //Replace all double white spaces with single spaces
       gmNotes = gmNotes.replace(/\s+/g, ' ');
-
-      // this is the winner !!
-      //gmNotes = gmNotes.replace(/[^a-zA-Z0-9()\+:,\'\. ]/g, ''); // do i still need this post aaron?
-
-//       gmNotes = gmNotes.replace(/span classuserscripts1/g, ' '); // these 11 pre aaron
-//       gmNotes = gmNotes.replace(/span classuserscripts2/g, ' ');
-//       gmNotes = gmNotes.replace(/span classuserscripts3/g, ' ');
-//       gmNotes = gmNotes.replace(/span classuserscripts4/g, ' ');
-//       gmNotes = gmNotes.replace(/pp classuserscriptp1/g, ' ');
-//       gmNotes = gmNotes.replace(/pp classuserscriptp2/g, ' ');
-//       gmNotes = gmNotes.replace(/pp classuserscriptp3/g, ' ');
-//       gmNotes = gmNotes.replace(/pp classuserscriptp4/g, ' ');
-//       gmNotes = gmNotes.replace(/p classuserscriptp1/g, ' ');
-//       gmNotes = gmNotes.replace(/spanspan/g, ' ');
-//       gmNotes = gmNotes.replace(/span span/g, ' ');
-      
       gmNotes = gmNotes.trim();
 
-      // If you want to remove all control characters, including CR and LF, you can use this:
-      // gmNotes = gmNotes.replace(/[^\x20-\x7E]/gmi, ""); // pre aaron
-
-      // check the cleanup
-      if (verboseMode) {
-         sendChat("", "clean gmNotes in 1 line = [" + gmNotes + "]");
-      }
       // ------------------------------------------
       // ----- start extracting attributes --------
       // ------------------------------------------
@@ -588,7 +371,7 @@ on('chat:message', function(msg) {
       };
 
       // rename and configure the token
-      //  Name p/p/t(a)[s]@  = Name pace/parry/toughness(armor){size}@ (if WildCard)
+      //  Name p/p/t(a)[s]@  = Name pace/parry/toughness(armor){size}@ (@ if WildCard)
       var tokenName = charName + " " + pace + "/" + parry + "/" + toughness + "(" + armor + "){" + size + "}";
       if (wildCard) {
          tokenName = tokenName + "@";
@@ -606,7 +389,7 @@ on('chat:message', function(msg) {
       });
  
       // format GM notes for Bio
-      gmNotes = gmNotes.replace(/DD/, '<b>[Wild Card!]</b> ');
+      gmNotes = gmNotes.replace(/\[WC\!\]/, '<b>[WC!]</b> ');
       gmNotes = gmNotes.replace(charName, '<b>' + charName +'</b><br>');
       gmNotes = gmNotes.replace('Attributes', '<br><b>Attributes </b>' );
       gmNotes = gmNotes.replace('Skills','<br><b>Skills </b>');
