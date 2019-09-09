@@ -1,13 +1,19 @@
 // SWADE STAT BLOCK IMPORTER FOR ROLL20 API
 //  Original Author Jason.P 18/1/2015 - ported from Version 2.25
 //  Thread: https://app.roll20.net/forum/post/1517881/pathfinder-statblock-import-to-character-sheet-script/?pagenum=2
-//
+// 
 //  pelwer - 12/28/18 
 // 	Hacked to parse swade stat block from pdf
+//  pelwer - 9/8/19
+//    Upgraded the parser based on post from Aaron
+//    https://wiki.roll20.net/API:Cookbook#decodeEditorText
 // 	
 // 	INSTRUCTIONS
-// 	1. Find yourself a SW stat-block
-// 	2. Copy the stat block from *Name* on down - make sure first line starts with 'DD' if wild card
+// 	1. Find yourself a SW stat-block (doesn't have to be SWADE, SWD version works fine too)
+// 	2. Copy the stat block from *Name* on down
+//    2.2 Paste into a plain text editor. 
+//    2.4 Prepend [WC!] in first column of first line to make the creature a wildcard
+//    2.6 Select and copy the text again
 // 	3. Paste the stat block into the GM Notes Section of a token in your roll20 campaign.
 // 	4. Select the token 
 //    5. In the chat box, type the command "!SW-Import".
@@ -32,6 +38,40 @@
 //   "comma_first": false,
 //   "e4x": false
 // }
+
+// New gmnotes parsing clean up from Aaron:
+// Given the text from a Graphic's gmnotes property, or a Character's bio or gmnotes 
+// property, or a Handout's notes or gmnotes property, this will return a version with 
+// the auto-inserted editor formatting stripped out.
+//
+// Usage:
+//  The first argument is the text to process.
+//    const text = decodeEditorText(token.get('gmnotes'));
+// By default, the lines of text will be separated by \r\n.
+// The optional second argument is an object with options.
+// separator -- specifies what to separate lines of text with. Default: \r\n
+//    const text = decodeEditorText(token.get('gmnotes'),{separator:'<BR>'});
+// asArray -- specifies to instead return the lines as an array. Default: false
+//    const text = decodeEditorText(token.get('gmnotes'),{asArray:true});
+
+const decodeEditorText = (t, o) =>{
+  let w = t;
+  o = Object.assign({ separator: '\r\n', asArray: false },o);
+  /* Token GM Notes */
+  if(/^%3Cp%3E/.test(w)){
+    w = unescape(w);
+  }
+  if(/^<p>/.test(w)){
+    let lines = w.match(/<p>.*?<\/p>/g)
+      .map( l => l.replace(/^<p>(.*?)<\/p>$/,'$1'));
+    return o.asArray ? lines : lines.join(o.separator);
+  }
+  /* neither */
+  return t;
+};
+
+
+
 
 //     AddAttribute("size",sizeNum,charID);
 // var AddAttribute = AddAttribute || {};  // needed?
@@ -203,43 +243,36 @@ on('chat:message', function(msg) {
 
       // get notes from token
       var originalGmNotes = token.get('gmnotes');
-      var gmNotes = token.get('gmnotes');
+      var gmNotes = token.get('gmnotes'); //original code
+      // const text = decodeEditorText(token.get('gmnotes'));
+      const text = decodeEditorText(token.get('gmnotes'),{separator:'<BR>'});
+      var gmNotes = text;
       if (!gmNotes) {
          sendChat("ERROR", "GM Notes is empty.");
          return;
       }
-      // sendChat("","raw gmNotes = [" + gmNotes + "]" );
-
-      // strip out html tags:  myString.replace(/<(?:.|\n)*?>/gm, '');
-      // gmNotes = gmNotes.replace(/<(?:.|\n)*?>/gm, '');
-      // sendChat("","after 2nd replace gmNotes = [" + gmNotes + "]" );
+      // sendChat("","Post Decode gmNotes = [" + gmNotes + "]" );
+		// return;
       
-      
-      // this is the winner !!  put what you want to keep in the regex
-      // gmNotes = gmNotes.replace(/[^a-zA-Z0-9()<\/>+:, ]/g, '');
-      // sendChat("","after 1st replace gmNotes = [" + gmNotes + "]" );
-      
-
-      
-      //strip html junk from gmNotes that roll20 stores text block
-      gmNotes = stripString(gmNotes, "%3C/table%3E", "%3Cbr");
-      gmNotes = stripString(gmNotes, "%3C/h1%3E", "%3Cbr");
-      gmNotes = stripString(gmNotes, "%3C/h2%3E", "%3Cbr");
-      gmNotes = stripString(gmNotes, "%3C/h3%3E", "%3Cbr");
-      gmNotes = stripString(gmNotes, "%3C/h4%3E", "%3Cbr");
+      //strip html junk from gmNotes that roll20 stores text block // pre aaron
+      //gmNotes = stripString(gmNotes, "%3C/table%3E", "%3Cbr");
+      //gmNotes = stripString(gmNotes, "%3C/h1%3E", "%3Cbr");
+      //gmNotes = stripString(gmNotes, "%3C/h2%3E", "%3Cbr");
+      //gmNotes = stripString(gmNotes, "%3C/h3%3E", "%3Cbr");
+      //gmNotes = stripString(gmNotes, "%3C/h4%3E", "%3Cbr");
 
       // sendChat("","some cleaning  gmNotes = [" + gmNotes + "]" );
       // return;
 
-      //break the string down by line returns
-      // var data = gmNotes.split("userscript-");      
+      //break the string down by line returns     
       var data = [];
-      if ( /userscript-/.test(gmNotes) ) {
-         data = gmNotes.split("userscript-"); 
-      }
-      else {
-         data = gmNotes.split("br"); 
-      }
+      data = gmNotes.split('<BR>'); // post aaron change
+//       if ( /userscript-/.test(gmNotes) ) {  // orig pre aaron code
+//          data = gmNotes.split("userscript-"); 
+//       }
+//       else {
+//          data = gmNotes.split("br"); 
+//       }
       // check the data looks right
       // sendChat("","data2 = [" + data[2] + "]" );
       //  return;
@@ -250,8 +283,8 @@ on('chat:message', function(msg) {
       var wildCard = 0;
       var skipLoop = 0;
       for (var i = 0; i < data.length; i++) {
-         data[i] = cleanUpString(data[i]);
-         data[i] = removeLinks(data[i]);
+         //data[i] = cleanUpString(data[i]); // pre aaron
+         //data[i] = removeLinks(data[i]); // pre aaron
          data[i] = data[i].trim();
          // grab the first line with text
          if (/[A-Z]+/.test(data[i]) && !skipLoop) {
@@ -260,27 +293,23 @@ on('chat:message', function(msg) {
             skipLoop = 1;
             charNameLine = data[i];
 
-            // the wildcard symbol in the SWADE PDF translates to "DD" in GM Notes after all the string stripping
-            if (charNameLine.match(/^DD/)) {
+            // prepend [WC!] in first column of first line to make the creature a wildcard 
+            if (charNameLine.match(/^\[WC\!\]/)) {
                wildCard = 1;
             }
 
             // get the name of the monster to build the journal entry
             if (wildCard) {
-               charName = charNameLine.match(/^DD(.*)/)[1];
+               charName = charNameLine.match(/^\[WC\!\](.*)/)[1];
             }
             else {
                charName = charNameLine.match(/^(.*)/)[1];
             }
-            charName = charName.replace(/p class/g, '');
-            charName = stripString(charName, "nbsp,", " ");
-            charName = charName.replace(/[^a-zA-Z0-9()+:, ]/g, '');
-            charName = charName.trim();
+            // charName = charName.replace(/p class/g, '');  // these 4 pre aaron
+            // charName = stripString(charName, "nbsp,", " ");
+            // charName = charName.replace(/[^a-zA-Z0-9()+:, ]/g, '');
+            // charName = charName.trim();
 
-            // get rid of all new lines
-            // charName = charName.replace(/[\n\r]+/g, "");
-            // If you want to remove all control characters, including CR and LF, you can use this:
-            // charName = charName.replace(/[^\x20-\x7E]/gmi, "");
          }
       }
       if (verboseMode) {
@@ -288,56 +317,56 @@ on('chat:message', function(msg) {
          sendChat("", "Wild Card: = [" + wildCard + "]");
       }
 
-      // get GM Notes into a single long string for regex parsing
-      gmNotes = stripString(gmNotes, "%3C", "<");
-      gmNotes = stripString(gmNotes, "%3E", ">");
-      gmNotes = stripString(gmNotes, "%23", "#");
-      gmNotes = stripString(gmNotes, "%3A", ":");
-      gmNotes = stripString(gmNotes, "%3B", ",");
-      gmNotes = stripString(gmNotes, "%3D", "=");
-      gmNotes = stripString(gmNotes, "</strong>", "");
-      gmNotes = stripString(gmNotes, "<strong>", "");
-      gmNotes = stripString(gmNotes, "</em>", "");
-      gmNotes = stripString(gmNotes, "<em>", "");
-      gmNotes = stripString(gmNotes, "%u2013", "-");
-      gmNotes = stripStringRegEx(gmNotes, "<b", ">");
-      gmNotes = stripString(gmNotes, "</b>", "");
-      gmNotes = stripStringRegEx(gmNotes, "<h", ">");
-      gmNotes = stripStringRegEx(gmNotes, "</h", ">");
-      gmNotes = stripString(gmNotes, "</a>", "");
-      gmNotes = stripStringRegEx(gmNotes, "<t", ">");
-      gmNotes = stripStringRegEx(gmNotes, "</t", ">");
-      gmNotes = stripStringRegEx(gmNotes, "<span", "> ");
-      gmNotes = stripStringRegEx(gmNotes, "</span", "> ");
-      gmNotes = stripString(gmNotes, "<span>", " ");
-      gmNotes = stripString(gmNotes, "</span>", " ");
-      gmNotes = stripStringRegEx(gmNotes, "<p", "> ");
-      gmNotes = stripStringRegEx(gmNotes, "</p", "> ");
-      gmNotes = stripString(gmNotes, "<p>", " ");
-      gmNotes = stripString(gmNotes, "</p>", " ");
-      gmNotes = stripString(gmNotes, "%20", " ");
-      gmNotes = stripString(gmNotes, "%22", "\"");
-      gmNotes = stripString(gmNotes, "%29", ")");
-      gmNotes = stripString(gmNotes, "%28", "(");
-      gmNotes = stripString(gmNotes, "%2C", ",");
-      gmNotes = stripString(gmNotes, "%27", "'");
-      gmNotes = stripString(gmNotes, "%u2019", "'");
-      gmNotes = stripString(gmNotes, "%u201C", " ");
-      gmNotes = stripString(gmNotes, "%u2022", " ");
-      gmNotes = stripString(gmNotes, "%u2014", " ");
-      gmNotes = stripString(gmNotes, "%84", " ");
-      gmNotes = stripString(gmNotes, "%0A", " ");
-      gmNotes = stripString(gmNotes, "%26nbsp,", " ");
-      gmNotes = stripString(gmNotes, "%u201D", " ");    
-      gmNotes = stripString(gmNotes, "%26amp,", "and");
+      // get GM Notes into a single long string for regex parsing - all pre aaron
+//       gmNotes = stripString(gmNotes, "%3C", "<");
+//       gmNotes = stripString(gmNotes, "%3E", ">");
+//       gmNotes = stripString(gmNotes, "%23", "#");
+//       gmNotes = stripString(gmNotes, "%3A", ":");
+//       gmNotes = stripString(gmNotes, "%3B", ",");
+//       gmNotes = stripString(gmNotes, "%3D", "=");
+//       gmNotes = stripString(gmNotes, "</strong>", "");
+//       gmNotes = stripString(gmNotes, "<strong>", "");
+//       gmNotes = stripString(gmNotes, "</em>", "");
+//       gmNotes = stripString(gmNotes, "<em>", "");
+//       gmNotes = stripString(gmNotes, "%u2013", "-");
+//       gmNotes = stripStringRegEx(gmNotes, "<b", ">");
+//       gmNotes = stripString(gmNotes, "</b>", "");
+//       gmNotes = stripStringRegEx(gmNotes, "<h", ">");
+//       gmNotes = stripStringRegEx(gmNotes, "</h", ">");
+//       gmNotes = stripString(gmNotes, "</a>", "");
+//       gmNotes = stripStringRegEx(gmNotes, "<t", ">");
+//       gmNotes = stripStringRegEx(gmNotes, "</t", ">");
+//       gmNotes = stripStringRegEx(gmNotes, "<span", "> ");
+//       gmNotes = stripStringRegEx(gmNotes, "</span", "> ");
+//       gmNotes = stripString(gmNotes, "<span>", " ");
+//       gmNotes = stripString(gmNotes, "</span>", " ");
+//       gmNotes = stripStringRegEx(gmNotes, "<p", "> ");
+//       gmNotes = stripStringRegEx(gmNotes, "</p", "> ");
+//       gmNotes = stripString(gmNotes, "<p>", " ");
+//       gmNotes = stripString(gmNotes, "</p>", " ");
+//       gmNotes = stripString(gmNotes, "%20", " ");
+//       gmNotes = stripString(gmNotes, "%22", "\"");
+//       gmNotes = stripString(gmNotes, "%29", ")");
+//       gmNotes = stripString(gmNotes, "%28", "(");
+//       gmNotes = stripString(gmNotes, "%2C", ",");
+//       gmNotes = stripString(gmNotes, "%27", "'");
+//       gmNotes = stripString(gmNotes, "%u2019", "'");
+//       gmNotes = stripString(gmNotes, "%u201C", " ");
+//       gmNotes = stripString(gmNotes, "%u2022", " ");
+//       gmNotes = stripString(gmNotes, "%u2014", " ");
+//       gmNotes = stripString(gmNotes, "%84", " ");
+//       gmNotes = stripString(gmNotes, "%0A", " ");
+//       gmNotes = stripString(gmNotes, "%26nbsp,", " ");
+//       gmNotes = stripString(gmNotes, "%u201D", " ");    
+//       gmNotes = stripString(gmNotes, "%26amp,", "and");
 
       // sendChat("","x gmNotes = [" + gmNotes + "]" );
       // return;
       
-      // done with all the substitutions, delete all the other codes
-      while (gmNotes.search(/%../) != -1) {
-         gmNotes = gmNotes.replace(/%../, "");
-      }
+      // done with all the substitutions, delete all the other codes  -- pre aaron
+//       while (gmNotes.search(/%../) != -1) {
+//          gmNotes = gmNotes.replace(/%../, "");
+//       }
 
       // This javascript replaces all 3 types of line breaks with a space
       // This makes gmNotes 1 line of text
@@ -347,26 +376,24 @@ on('chat:message', function(msg) {
       gmNotes = gmNotes.replace(/\s+/g, ' ');
 
       // this is the winner !!
-      gmNotes = gmNotes.replace(/[^a-zA-Z0-9()\+:,\'\. ]/g, '');
+      //gmNotes = gmNotes.replace(/[^a-zA-Z0-9()\+:,\'\. ]/g, ''); // do i still need this post aaron?
 
-      gmNotes = gmNotes.replace(/span classuserscripts1/g, ' ');
-      gmNotes = gmNotes.replace(/span classuserscripts2/g, ' ');
-      gmNotes = gmNotes.replace(/span classuserscripts3/g, ' ');
-      gmNotes = gmNotes.replace(/span classuserscripts4/g, ' ');
-
-      gmNotes = gmNotes.replace(/pp classuserscriptp1/g, ' ');
-      gmNotes = gmNotes.replace(/pp classuserscriptp2/g, ' ');
-      gmNotes = gmNotes.replace(/pp classuserscriptp3/g, ' ');
-      gmNotes = gmNotes.replace(/pp classuserscriptp4/g, ' ');
- 
-      gmNotes = gmNotes.replace(/p classuserscriptp1/g, ' ');
-      gmNotes = gmNotes.replace(/spanspan/g, ' ');
-      gmNotes = gmNotes.replace(/span span/g, ' ');
+//       gmNotes = gmNotes.replace(/span classuserscripts1/g, ' '); // these 11 pre aaron
+//       gmNotes = gmNotes.replace(/span classuserscripts2/g, ' ');
+//       gmNotes = gmNotes.replace(/span classuserscripts3/g, ' ');
+//       gmNotes = gmNotes.replace(/span classuserscripts4/g, ' ');
+//       gmNotes = gmNotes.replace(/pp classuserscriptp1/g, ' ');
+//       gmNotes = gmNotes.replace(/pp classuserscriptp2/g, ' ');
+//       gmNotes = gmNotes.replace(/pp classuserscriptp3/g, ' ');
+//       gmNotes = gmNotes.replace(/pp classuserscriptp4/g, ' ');
+//       gmNotes = gmNotes.replace(/p classuserscriptp1/g, ' ');
+//       gmNotes = gmNotes.replace(/spanspan/g, ' ');
+//       gmNotes = gmNotes.replace(/span span/g, ' ');
       
       gmNotes = gmNotes.trim();
 
       // If you want to remove all control characters, including CR and LF, you can use this:
-      gmNotes = gmNotes.replace(/[^\x20-\x7E]/gmi, "");
+      // gmNotes = gmNotes.replace(/[^\x20-\x7E]/gmi, ""); // pre aaron
 
       // check the cleanup
       if (verboseMode) {
@@ -449,8 +476,8 @@ on('chat:message', function(msg) {
       if (/Stealth\s+(d\d+\+?\d*)/.test(gmNotes)) {
          stealth = gmNotes.match(/Stealth\s+(d\d+\+?\d*)/)[1];
       }
-      if (/[Spellcasting|Focus|Faith|Psionics|Weird Science]\s+(d\d+\+?\d*)/.test(gmNotes)) {
-         arcane = gmNotes.match(/[Spellcasting|Spellweaving|Runecasting|Focus|Faith|Psionics|Weird Science]\s+(d\d+\+?\d*)/)[1];
+      if (/[Spellcasting|Focus|Faith|Psionics|Weird Science|Arcane]\s+(d\d+\+?\d*)/.test(gmNotes)) {
+         arcane = gmNotes.match(/[Spellcasting|Spellweaving|Runecasting|Focus|Faith|Psionics|Weird Science|Arcane]\s+(d\d+\+?\d*)/)[1];
       }
 
       // Derived Stats
@@ -481,6 +508,7 @@ on('chat:message', function(msg) {
       var initEdges = '0,';
       var cbtReflex = '0';
       var ironJaw = '0';
+      var wildDie = '0';
       if (/(Edges|Special Abilities):.*Quick/.test(gmNotes)) {
          initEdges = initEdges + 'Qui,';
       }
@@ -507,6 +535,10 @@ on('chat:message', function(msg) {
       }
       if (/(Edges|Special Abilities):.*Iron Jaw/.test(gmNotes)) {
          ironJaw = '1';
+      }
+      // give a non wildcard a wild die
+      if (/(Edges|Special Abilities):.*Wild Die/.test(gmNotes)) {
+         wildDie = '1';
       }
 
 
@@ -600,7 +632,7 @@ on('chat:message', function(msg) {
       AddAttribute('SPI', dieConvert(spirit), charID);
       AddAttribute('STR', dieConvert(strength), charID);
       AddAttribute('VIG', dieConvert(vigor), charID);
-      AddAttribute('WildDie', wildCard, charID);
+      AddAttribute('WildDie', wildCard || wildDie, charID);
       AddAttribute('Combat', dieConvert(combat), charID);
 
       AddAttribute('MeleeDam', dieConvert(melee), charID);
