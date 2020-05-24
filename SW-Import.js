@@ -1,12 +1,16 @@
 // SWADE STAT BLOCK IMPORTER FOR ROLL20 API
-//  Original Author Jason.P 18/1/2015 - ported from Version 2.25
-//  Thread: https://app.roll20.net/forum/post/1517881/pathfinder-statblock-import-to-character-sheet-script/?pagenum=2
 // 
+// Command Line: !SW-Import
+//
 //  pelwer - 12/28/18 
 // 	Hacked to parse swade stat block from pdf
 //  pelwer - 9/8/19
 //    Upgraded the parser based on post from Aaron
 //    https://wiki.roll20.net/API:Cookbook#decodeEditorText
+//  pelwer - 2/16/2020
+//    added parse for undead, construct to set combat reflex
+//    added parse for Endurance to set Iron Jaw
+//    turned on Wild die for everything - can decide in the game whether ot use it or whether the thing is a WC
 // 	
 // 	INSTRUCTIONS
 // 	1. Find yourself a SW stat-block (doesn't have to be SWADE, SWD version works fine too)
@@ -18,6 +22,9 @@
 // 	4. Select the token 
 //    5. In the chat box, type the command "!SW-Import".
 // 
+//---------------------------------------------------
+//  Original Author Jason.P 18/1/2015 - ported from Version 2.25
+//  Thread: https://app.roll20.net/forum/post/1517881/pathfinder-statblock-import-to-character-sheet-script/?pagenum=2
 // ---------------------------------------------------------
 // js beautify json options:   https://beautifier.io/
 // {
@@ -291,14 +298,14 @@ on('chat:message', function(msg) {
       var initEdges = '0,';
       var cbtReflex = '0';
       var ironJaw = '0';
-      var wildDie = '0';
+      var wildDie = '1';  // Turn on the wild die 
       if (/(Edges|Special Abilities):.*Quick/.test(gmNotes)) {
          initEdges = initEdges + 'Qui,';
       }
-      if (/(Edges|Special Abilities):.*Improved Level Headed/.test(gmNotes)) {
+      if (/(Edges|Special Abilities):.*Improved Level Head/.test(gmNotes)) {
          initEdges = initEdges + 'ILH,';
       }
-      if (/(Edges|Special Abilities):.*Level Headed/.test(gmNotes)) {
+      if (/(Edges|Special Abilities):.*Level Head/.test(gmNotes)) {
          initEdges = initEdges + 'LH,';
       }
       if (/(Edges|Special Abilities):.*Tactician/.test(gmNotes)) {
@@ -316,13 +323,22 @@ on('chat:message', function(msg) {
       if (/(Edges|Special Abilities):.*Combat Reflex/.test(gmNotes)) {
          cbtReflex = '1';
       }
+      if (/(Edges|Special Abilities):.*Undead/.test(gmNotes)) {
+         cbtReflex = '1';
+      }
+      if (/(Edges|Special Abilities):.*Construct/.test(gmNotes)) {
+         cbtReflex = '1';
+      }
       if (/(Edges|Special Abilities):.*Iron Jaw/.test(gmNotes)) {
+         ironJaw = '1';
+      }      
+      if (/(Edges|Special Abilities):.*Endurance/.test(gmNotes)) {
          ironJaw = '1';
       }
       // give a non wildcard a wild die
-      if (/(Edges|Special Abilities):.*Wild Die/.test(gmNotes)) {
-         wildDie = '1';
-      }
+//      if (/(Edges|Special Abilities):.*Wild Die/.test(gmNotes)) {
+//         wildDie = '1';
+//      }
 
 
       // Damage
@@ -426,11 +442,11 @@ on('chat:message', function(msg) {
       AddAttribute('Notice', dieConvert(notice), charID);
       AddAttribute('Stealth', dieConvert(stealth), charID);
 
-      AddAttribute('Pace', pace, charID);
-      AddAttribute('Parry', parry, charID);
-      AddAttribute('Toughness', toughness, charID);
-      AddAttribute('Armor', armor, charID);
-      AddAttribute('Size', size, charID);
+      AddAttribute('_Pace', pace, charID);
+      AddAttribute('_Parry', parry, charID);
+      AddAttribute('_Toughness', toughness, charID);
+      AddAttribute('_Armor', armor, charID);
+      AddAttribute('_Size', size, charID);
       AddAttribute('InitEdges', initEdges, charID);
       AddAttribute('CombatReflex', cbtReflex, charID);
       AddAttribute('IronJaw', ironJaw, charID);
