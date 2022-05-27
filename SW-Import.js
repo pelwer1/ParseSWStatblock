@@ -1,8 +1,8 @@
-// SWADE STAT BLOCK IMPORTER FOR ROLL20 API
-// 
-// Command Line: !SW-Import
+// SW STAT BLOCK IMPORTER
 //
-//  pelwer - 12/28/18 
+// Command Line: !psb    (parse stat block)
+//
+//  pelwer - 12/28/18
 // 	Hacked to parse swade stat block from pdf
 //  pelwer - 9/8/19
 //    Upgraded the parser based on post from Aaron
@@ -11,21 +11,23 @@
 //    added parse for undead, construct to set combat reflex
 //    added parse for Endurance to set Iron Jaw
 //    turned on Wild die for everything - can decide in the game whether ot use it or whether the thing is a WC
-// 	
+//  pelwer - 5/28/22
+//    renamed the attributes that get added to the character
+//
 // 	INSTRUCTIONS
 // 	1. Find yourself a SW stat-block (doesn't have to be SWADE, SWD version works fine too)
 // 	2. Copy the stat block from *Name* on down
-//         2.2 Paste into a plain text editor. 
+//         2.2 Paste into a plain text editor.
 //         2.4 Prepend [WC!] in first column of first line to make the creature a wildcard
 //         2.6 Select and copy the text again
 // 	3. Paste the stat block into the GM Notes Section of a token in your roll20 campaign.
-// 	4. Select the token 
+// 	4. Select the token
 //      5. In the chat box, type the command "!SW-Import".
 //
-//      Alternative:
-//        Found that Shift-Ctrl-V in Roll20 pastes in plain text.  
+// Better Alternative:
+//        Found that Shift-Ctrl-V in Roll20 pastes in plain text.
 //        This allows you to skip the paste into the text editor
-// 
+//
 //---------------------------------------------------
 //  Original Author Jason.P 18/1/2015 - ported from Version 2.25
 //  Thread: https://app.roll20.net/forum/post/1517881/pathfinder-statblock-import-to-character-sheet-script/?pagenum=2
@@ -51,8 +53,8 @@
 // }
 
 // New gmnotes parsing clean up from Aaron:  9/8/19
-// Given the text from a Graphic's gmnotes property, or a Character's bio or gmnotes 
-// property, or a Handout's notes or gmnotes property, this will return a version with 
+// Given the text from a Graphic's gmnotes property, or a Character's bio or gmnotes
+// property, or a Handout's notes or gmnotes property, this will return a version with
 // the auto-inserted editor formatting stripped out.
 //
 // Usage:
@@ -122,7 +124,7 @@ function dieConvert(str) {
 on('chat:message', function(msg) {
 
    // Only run when message is an api type and contains "!PathfinderImport"
-   if (msg.type === 'api' && msg.content.indexOf('!SW-Import') !== -1) {
+   if (msg.type === 'api' && msg.content.indexOf('!psb') !== -1) {
 
       // Make sure there's a selected object
       if (!(msg.selected && msg.selected.length > 0)) {
@@ -130,7 +132,7 @@ on('chat:message', function(msg) {
          return;
       }
 
-      // Don't try to set up a drawing or card 
+      // Don't try to set up a drawing or card
       var token = getObj('graphic', msg.selected[0]._id);
       if (token.get('subtype') !== 'token') {
          sendChat("ERROR", "Must select a Token, not a drawing or a card.");
@@ -151,7 +153,7 @@ on('chat:message', function(msg) {
       // sendChat("","Post Decode gmNotes = [" + gmNotes + "]" );
 		// return;
       
-      //break the string down by line returns     
+      //break the string down by line returns
       var data = [];
       data = gmNotes.split('<BR>'); // post aaron change
 
@@ -163,11 +165,11 @@ on('chat:message', function(msg) {
       for (var i = 0; i < data.length; i++) {
          data[i] = data[i].trim();
          // grab the first line with text
-         if (/[A-Z]+/.test(data[i]) && !skipLoop) {
+         if (/[A-Za-z]+/.test(data[i]) && !skipLoop) {
             skipLoop = 1;
             charNameLine = data[i];
 
-            // prepend [WC!] in first column of first line to make the creature a wildcard 
+            // prepend [WC!] in first column of first line to make the creature a wildcard
             if (charNameLine.match(/^\[WC\!\]/)) {
                wildCard = 1;
             }
@@ -252,7 +254,7 @@ on('chat:message', function(msg) {
       if (parseInt(pers, 10) > parseInt(intimpers, 10)) {
          intimpers = gmNotes.match(/Persuasion\s+(d\d+\+?\d*)/)[1];
       }
-      else if (intim === '1') { // no intim skill 
+      else if (intim === '1') { // no intim skill
          intimpers = 'd4';
       }
       else {
@@ -289,11 +291,11 @@ on('chat:message', function(msg) {
       if (/Toughness:\s+(\d+)/.test(gmNotes)) {
          toughness = gmNotes.match(/Toughness:\s+(\d+)/)[1];
       }
-      // Toughness: 12 (4) 
+      // Toughness: 12 (4)
       if (/Toughness:\s+\d+\s*\((\d+)\)/.test(gmNotes)) {
          armor = gmNotes.match(/Toughness:\s+\d+\s*\((\d+)\)/)[1];
       }
-      //    Size 1  Size +1 
+      //    Size 1  Size +1
       if (/Size\s+\+?(\d+)/.test(gmNotes)) {
          size = gmNotes.match(/Size\s+\+?(\d+)/)[1];
       }
@@ -302,7 +304,7 @@ on('chat:message', function(msg) {
       var initEdges = '0,';
       var cbtReflex = '0';
       var ironJaw = '0';
-      var wildDie = '1';  // Turn on the wild die 
+      var wildDie = '1';  // Turn on the wild die
       if (/(Edges|Special Abilities):.*Quick/.test(gmNotes)) {
          initEdges = initEdges + 'Qui,';
       }
@@ -335,14 +337,11 @@ on('chat:message', function(msg) {
       }
       if (/(Edges|Special Abilities):.*Iron Jaw/.test(gmNotes)) {
          ironJaw = '1';
-      }      
+      }
       if (/(Edges|Special Abilities):.*Endurance/.test(gmNotes)) {
          ironJaw = '1';
       }
-      // give a non wildcard a wild die
-//      if (/(Edges|Special Abilities):.*Wild Die/.test(gmNotes)) {
-//         wildDie = '1';
-//      }
+
 
 
       // Damage
@@ -435,25 +434,19 @@ on('chat:message', function(msg) {
       AddAttribute('SPI', dieConvert(spirit), charID);
       AddAttribute('STR', dieConvert(strength), charID);
       AddAttribute('VIG', dieConvert(vigor), charID);
-      AddAttribute('WildDie', wildCard || wildDie, charID);
-      AddAttribute('Combat', dieConvert(combat), charID);
+      AddAttribute('CBT', dieConvert(combat), charID);
 
-      AddAttribute('MeleeDam', dieConvert(melee), charID);
-      AddAttribute('RangeDam', ranged, charID);
-      AddAttribute('Arcane', dieConvert(arcane), charID);
-      AddAttribute('Athletics', dieConvert(athletics), charID);
-      AddAttribute('IntimPers', dieConvert(intimpers), charID);
-      AddAttribute('Notice', dieConvert(notice), charID);
-      AddAttribute('Stealth', dieConvert(stealth), charID);
+      AddAttribute('MDM', dieConvert(melee), charID);
+      AddAttribute('RDM', ranged, charID);
+      AddAttribute('ARC', dieConvert(arcane), charID);
+      AddAttribute('ATH', dieConvert(athletics), charID);
+      AddAttribute('SOC', dieConvert(intimpers), charID);
+      AddAttribute('NOT', dieConvert(notice), charID);
+      AddAttribute('STL', dieConvert(stealth), charID);
 
-      AddAttribute('_Pace', pace, charID);
-      AddAttribute('_Parry', parry, charID);
-      AddAttribute('_Toughness', toughness, charID);
-      AddAttribute('_Armor', armor, charID);
-      AddAttribute('_Size', size, charID);
       AddAttribute('InitEdges', initEdges, charID);
-      AddAttribute('CombatReflex', cbtReflex, charID);
-      AddAttribute('IronJaw', ironJaw, charID);
+      AddAttribute('CBR', cbtReflex, charID);
+      AddAttribute('IRJ', ironJaw, charID);
 
       sendChat('', '/w gm SW Statblock Import Complete');
       sendChat('', '/w gm Created: charName = [' + charName + '] Wild Card: = [' + wildCard + ']');
