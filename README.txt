@@ -1,21 +1,26 @@
 SWADE STAT BLOCK IMPORTER FOR ROLL20 API
- Original Author Jason.P 18/1/2015 - ported from Version 2.25
- Thread: https://app.roll20.net/forum/post/1517881/pathfinder-statblock-import-to-character-sheet-script/?pagenum=2
 
- pelwer - 12/28/18 
-	Hacked to parse swade stat block from pdf
- pelwer - 9/8/19
-   Upgraded the parser based on post from Aaron
-   https://wiki.roll20.net/API:Cookbook#decodeEditorText
-	
-	INSTRUCTIONS
-	1. Find yourself a SW stat-block (doesn't have to be SWADE, SWD version works fine too)
-	2. Copy the stat block from *Name* on down
-   2.2 Paste into a plain text editor. 
-   2.4 Prepend [WC!] in first column of first line to make the creature a wildcard
-   2.6 Select and copy the text again
-	3. Paste the stat block into the GM Notes Section of a token in your roll20 campaign.
-	4. Select the token 
-  5. In the chat box, type the command "!SW-Import".
+Note this script is only useful for my custom GM setup for running SW in roll20 which does not use charater sheets.
+
+It creates a set of Attributes with the most basic Traits that my macro's rely on
   
-  
+usage: !psb
+
+Example Macros:
+
+Attack
+/emas Your enemy presses forward and attacks ferociously...
+&{template:default}{{name=@{Div|Left}   NPC Attack!}}  {{Att:=[[ @{selected|CBT} + ?{Mods|0} ]]  **Frz:** [[ @{selected|CBT} + ?{Mods|0} ]] **Arc:**[[ @{selected|ARC} + ?{Mods|0} ]]  (**W**[[ ?{Enter 1 for Wild Die|0}*d6! + ?{Enter 1 for Wild Die|0}*?{Mods|0}]]) }}
+Damage
+/emas Your enemy strikes with terrifying force and accuracy... 
+&{template:default}{{name=@{Div|Left}   NPC Damage}}{{**Melee:**=[[ @{selected|STR} + @{selected|MDM}  ]]  **Range:** [[ @{selected|RDM}  ]] (**Raise!** [[ d6!  ]])   }}
+
+Trait Roll
+/emas Your enemy attempts to use their traits to seize advantage...
+&{template:default}{{name=@{Div|Left} NPC Trait Check}}  {{ AGI: [[ @{selected|AGI} + ?{Mods|0} ]] = Athletics: [[ @{selected|ATH} + ?{Mods|0} ]] }}  {{ SMA: [[ @{selected|SMA} + ?{Mods|0} ]] = Heal, Lor, Rep, Surv: [[ @{selected|SMA} + ?{Mods|0} ]]   }}  {{ SPI: [[ @{selected|SPI} + ?{Mods|0} ]] = Intim, Pers, Taunt: [[ @{selected|SOC} + ?{Mods|0} ]] }}  {{ STR: [[ @{selected|STR} + ?{Mods|0} ]] = Notice: [[ @{selected|NOT} + ?{Mods|0} ]] }}  {{ VIG: [[ @{selected|VIG} + ?{Mods|0} ]] = Thievery, Vehicles: [[ @{selected|AGI} + ?{Mods|0} ]] }}  {{   ***Wild Die***   = [[ ?{Enter 1 for Wild Die|0}*d6! + ?{Enter 1 for Wild Die|0}*?{Mods|0}]] }}
+
+Un Shake/Soak
+/emas Your enemy attempts to clear his head and re-join the fight!
+&{template:default}{{name=@{Div|Left} NPC UnShake or Soak}}  {{Shake=[[ @{selected|SPI} + 2*@{selected|CBR}  ]]  (**W**[[ ?{Enter 1 for Wild Die|0}*d6! + ?{Enter 1 for Wild Die|0}*2*@{selected|CBR} ]])  ||** Soak**[[ @{selected|VIG} + 2*@{selected|IRJ} ]]  (**W**[[ ?{Enter 1 for Wild Die|0}*d6! + ?{Enter 1 for Wild Die|0}*2*@{selected|IRJ} ]]) }} }}
+
+
