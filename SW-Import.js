@@ -1,3 +1,5 @@
+// !psb
+//
 // SW STAT BLOCK IMPORTER
 //
 // Command Line: !psb    (parse stat block)
@@ -57,6 +59,10 @@
 // property, or a Handout's notes or gmnotes property, this will return a version with
 // the auto-inserted editor formatting stripped out.
 //
+// Trick from Aaron to fix "Syntax Error: Unexpected Identifier" - put a ";" at top of script
+// The API Server concatenates all the scripts together, which can lead to code that isn't
+// correct when a programmer relies on automatic semicolon insertion.
+;
 // Usage:
 //  The first argument is the text to process.
 //    const text = decodeEditorText(token.get('gmnotes'));
@@ -143,7 +149,6 @@ on('chat:message', function(msg) {
       var verboseMode = 0;
 
       // get notes from token
-      var originalGmNotes = token.get('gmnotes');
       const text = decodeEditorText(token.get('gmnotes'),{separator:'<BR>'});
       var gmNotes = text;
       if (!gmNotes) {
@@ -304,7 +309,6 @@ on('chat:message', function(msg) {
       var initEdges = '0,';
       var cbtReflex = '0';
       var ironJaw = '0';
-      var wildDie = '1';  // Turn on the wild die
       if (/(Edges|Special Abilities):.*Quick/.test(gmNotes)) {
          initEdges = initEdges + 'Qui,';
       }
@@ -387,7 +391,7 @@ on('chat:message', function(msg) {
       if (CheckSheet.length > 0) {
          sendChat("ERROR", "This character already exists.");
          return;
-      };
+      }
 
       // rename and configure the token
       //  Name p/p/t(a)[s]@  = Name pace/parry/toughness(armor){size}@ (@ if WildCard)
@@ -425,7 +429,6 @@ on('chat:message', function(msg) {
       token.set("represents", charID);
       
       //assign token to be default token
-      // have to do this outside script for now
       setDefaultTokenForCharacter( character, token );
 
       // Assign all the attributes to the character sheet
